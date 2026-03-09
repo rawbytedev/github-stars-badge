@@ -126,7 +126,28 @@ class DB:
                             decoded_val = val.decode()
                             results.append((decoded_key, decoded_val))
         return results
-
+    
+    def delete(self, key:Union[bytes,str]):
+        """
+        Deletes a key from the DB and index
+        
+        :param self: Description
+        :param key: key to delete
+        """
+        if not key:
+            raise DBError("Key can't be empty")
+        key ,_=self._encode_key_value(key)
+        hash_key = dighash(key)
+        try:
+            with self.db.begin(write=True) as txn:
+                txn.delete(hash_key)
+            with self.index.begin(write=True) as txn:
+                txn.delete(key)
+            if key in self.cache:
+                del self.cache[key]
+        except Exception as e:
+            raise DBError(f"Can't delete item: {key}") from e
+        
     def close(self):
         """
         closes the DB, clear caches
