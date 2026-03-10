@@ -23,10 +23,6 @@ from .utils import validate_owner_repo
 logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
-
-# Decorate endpoints: @limiter.limit("10/minute")
-
-
 app = FastAPI()
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.state.limiter = limiter
@@ -47,13 +43,13 @@ DB_PATH = "store.db"
 INDEX_PATH = "index.db"
 DB_INSTANCE = DB(path=DB_PATH, index_path=INDEX_PATH)
 def get_db() -> DB:
+    """Get the database instance."""
     return DB_INSTANCE
 
 @app.get("/health")
 async def health():
     """Health check endpoint to verify API and GitHub connectivity."""
     try:
-
         DB_INSTANCE.put("health_check", "test")  # Test DB connectivity
         val = DB_INSTANCE.get("health_check")  # Test DB connectivity
         if val.decode() != "test":
@@ -61,7 +57,12 @@ async def health():
         DB_INSTANCE.delete("health_check")  # Clean up test key
     except DBError as exc:
         logger.error("Database error during health check: %s", exc)
-        return JSONResponse(status_code=500, content={"status": "unhealthy", "error": "Database connectivity issue"})
+        return JSONResponse(status_code=500,
+                            content={
+                                "status": "unhealthy",
+                                "error": "Database connectivity issue"
+                                }
+                            )
     return {
         "status": "healthy",
         #"cache": {"hits": cache_stats.hits, "misses": cache_stats.misses},
@@ -181,7 +182,7 @@ async def fetch_github_star_count(owner: str, repo: Optional[str] = None) -> Opt
         url = GITHUB_API_URL.format("repos", owner, repo)
     else:
         url = GITHUB_API_URL.format("users", owner, "repos")
-        print(f"Fetching from GitHub API: {url} (page {page})")
+        logger.info("Fetching from GitHub API: %s (page %d)", url, page)
     params = {"page": page, "per_page": per_page}
     async with httpx.AsyncClient() as client:
         while True:
@@ -190,7 +191,7 @@ async def fetch_github_star_count(owner: str, repo: Optional[str] = None) -> Opt
                 resp.raise_for_status()  # Raise exception for 4xx/5xx responses
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 404:
-                    print(f"GitHub API returned 404 for {url}")
+                    logger.info("GitHub API returned 404 for %s", url)
                     return None  # user not found
                 return -1  # error fetching data
             repos = resp.json()
@@ -211,14 +212,14 @@ def fetch_cached_star_count(key: str) -> Optional[int]:
         cached = DB_INSTANCE.get(key)
         if cached is not None:
             stars = int(cached)
-            print(f"Cache hit for {key}: {stars:,} stars")
+            logger.info("Cache hit for %s: %s stars", key, f"{stars:,}")
             return stars
     except DBError:
-        print(f"Cache miss for {key}")
+        logger.info("Cache miss for %s", key)
         return None
     except ValueError:
         # Handle corrupted cache data gracefully
-        print(f"Warning: Invalid cache value for {key}. Treating as cache miss.")
+        logger.warning("Warning: Invalid cache value for %s. Treating as cache miss.", key)
         return None
 
 async def fetch_star_count(owner: str, repo: Optional[str] = None) -> Optional[int]:
@@ -228,7 +229,7 @@ async def fetch_star_count(owner: str, repo: Optional[str] = None) -> Optional[i
     stars = fetch_cached_star_count(key)
     if stars is not None:
         return stars
-    print(f"Cache miss for {key}, fetching from GitHub API")
+    logger.info("Cache miss for %s, fetching from GitHub API", key)
     stars = await fetch_github_star_count(owner, repo)
     if stars is not None and stars != -1:
         cache_star_count(key, stars)
@@ -240,16 +241,20 @@ def cache_star_count(key: str, stars: int) -> None:
     """
     try:
         DB_INSTANCE.put(key, str(stars))
-        print(f"Cached {key}: {stars:,} stars")
+        logger.info("Cached %s: %s stars", key, f"{stars:,}")
     except DBError:
-        print(f"Failed to cache {key}: {stars:,} stars")
+        logger.error("Failed to cache %s: %s stars", key, f"{stars:,}")
 
 def signal_handler(signum, frame):
+    """Handle termination signals for graceful shutdown."""
+    _ = frame
+    _ = signum
     logger.info("Shutting down gracefully")
     DB_INSTANCE.close()  # If DB supports it
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C gracefully
 
 def main():
     """Main function to run the FastAPI app."""

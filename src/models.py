@@ -20,7 +20,6 @@ class Settings(BaseModel):
     github_token: Optional[str] = None
     db_path: str = "store.db"
     cache_ttl: int = 3600
-    
     class Config:
         """Pydantic configuration for environment variable loading."""
         env_file = ".env"
