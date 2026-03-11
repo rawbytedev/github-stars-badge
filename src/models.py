@@ -4,6 +4,7 @@ Pydantic models for API responses.
 from typing import Optional
 from pydantic import BaseModel
 
+
 class StarsResponse(BaseModel):
     """Response model for user star count."""
     owner: str
@@ -14,7 +15,6 @@ class RepoStarsResponse(BaseModel):
     owner: str
     repo: str
     stars: int
-
 class Settings(BaseModel):
     """Application settings loaded from environment variables."""
     github_token: Optional[str] = None
