@@ -9,7 +9,7 @@ from models import CachedStarCount
 from .storage import DB, DBError
 # pylint: disable=E0402
 from .config import GITHUB_API_URL,HEADERS
-from .utils import current_timestamp
+from .utils import compare_timestamps, current_timestamp
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -73,6 +73,9 @@ class GitHubService:
                 stored = CachedStarCount.model_validate_json(cached)
                 stars = stored.stars
                 logger.info("Cache hit for %s: %s stars", key, f"{stars:,}")
+                if not compare_timestamps(stored.timestamp):
+                    logger.info("Cache TTL expired for %s", key)
+                    return None
                 return stars
         except DBError:
             logger.info("Cache miss for %s", key)
