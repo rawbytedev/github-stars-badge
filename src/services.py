@@ -4,9 +4,12 @@ Service layer for GitHub operations with dependency injection.
 import logging
 from typing import Optional
 import httpx
+
+from models import CachedStarCount
 from .storage import DB, DBError
 # pylint: disable=E0402
 from .config import GITHUB_API_URL,HEADERS
+from .utils import current_timestamp
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -67,7 +70,8 @@ class GitHubService:
         try:
             cached = self.db.get(key)
             if cached is not None:
-                stars = int(cached)
+                stored = CachedStarCount.model_validate_json(cached)
+                stars = stored.stars
                 logger.info("Cache hit for %s: %s stars", key, f"{stars:,}")
                 return stars
         except DBError:
@@ -88,7 +92,9 @@ class GitHubService:
             stars: Star count to cache
         """
         try:
-            self.db.put(key, str(stars))
+            stored = CachedStarCount(key=key, stars=stars, timestamp=current_timestamp())
+
+            self.db.put(key, stored.model_dump_json())
             logger.info("Cached %s: %s stars", key, f"{stars:,}")
         except DBError as e:
             logger.error("Failed to cache %s: %s", key, e)

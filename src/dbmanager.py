@@ -1,3 +1,5 @@
+"""dbmanager.py - Singleton manager for the LMDB database instance."""
+
 from typing import Optional
 from .storage import DB
 

@@ -15,11 +15,17 @@ class RepoStarsResponse(BaseModel):
     owner: str
     repo: str
     stars: int
+
+class CachedStarCount(BaseModel):
+    """Model for cached star count in the database."""
+    key: str
+    stars: int
+    timestamp: int
 class Settings(BaseModel):
     """Application settings loaded from environment variables."""
     github_token: Optional[str] = None
     db_path: str = "store.db"
-    cache_ttl: int = 3600
+    cache_ttl: int = 10
     class Config:
         """Pydantic configuration for environment variable loading."""
         env_file = ".env"

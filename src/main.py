@@ -27,7 +27,7 @@ handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
 
 limiter = Limiter(
-    key_func=get_remote_address, 
+    key_func=get_remote_address,
     default_limits=[RATE_LIMIT_STRING],
     )
 
