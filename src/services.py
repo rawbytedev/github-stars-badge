@@ -6,10 +6,10 @@ from typing import Optional
 import httpx
 
 from models import CachedStarCount
-from .storage import DB, DBError
+from storage import DB, DBError
 # pylint: disable=E0402
-from .config import GITHUB_API_URL,HEADERS
-from .utils import compare_timestamps, current_timestamp
+from config import GITHUB_API_URL,HEADERS
+from utils import compare_timestamps, current_timestamp
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -24,14 +24,16 @@ class GitHubService:
     making it easier to test and maintain.
     """
 
-    def __init__(self, db: DB):
+    def __init__(self, db: DB, timeout: float = 10.0):
         """
         Initialize service with database dependency.
 
         Args:
             db: Database instance for caching operations
+            timeout: Timeout for GitHub API requests (seconds)
         """
         self.db = db
+        self.timeout = timeout
 
     async def fetch_star_count(self, owner: str, repo: Optional[str] = None) -> Optional[int]:
         """
@@ -126,29 +128,37 @@ class GitHubService:
 
         logger.info("Fetching from GitHub API: %s (page %d)", url, page)
 
-        params = {"page": page, "per_page": per_page}
-
         async with httpx.AsyncClient() as client:
-            while True:
-                try:
-                    resp = await client.get(url, headers=HEADERS, params=params, timeout=10)
-                    resp.raise_for_status()
-                except httpx.HTTPStatusError as exc:
-                    if exc.response.status_code == 404:
-                        logger.info("GitHub API returned 404 for %s", url)
-                        return None
-                    return -1
-
-                repos = resp.json()
-                if not repos:
-                    break
-
+            try:
                 if repo:
-                    stars += repos.get("stargazers_count", 0)
-                    break
-                stars += sum(repo.get("stargazers_count", 0) for repo in repos)
-                page += 1
-                params["page"] = page
+                    # Single repository: fetch once, no pagination needed
+                    resp = await client.get(url, headers=HEADERS, timeout=10)
+                    resp.raise_for_status()
+                    repo_data = resp.json()
+                    stars = repo_data.get("stargazers_count", 0)
+                else:
+                    params = {"page": page, "per_page": per_page}
+                    # User repositories: paginate through all repos
+                    while True:
+                        resp = await client.get(url, headers=HEADERS, params=params, timeout=10)
+                        resp.raise_for_status()
+                        repos = resp.json()
+                        if not repos:
+                            break
+                        stars += sum(r.get("stargazers_count", 0) for r in repos)
+                        page += 1
+                        params["page"] = page
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 404:
+                    logger.info("GitHub API returned 404 for %s", url)
+                    return None
+            except httpx.RequestError as exc:
+                logger.info("GitHub API request error for %s: %s", url, exc)
+                return -1
+            #pylint: disable=broad-exception-caught
+            except Exception as exc:
+                logger.error("Unexpected error fetching from GitHub API for %s: %s", url, exc)
+                return -1
         return stars
 
     def health_check(self) -> dict:

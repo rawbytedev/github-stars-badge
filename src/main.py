@@ -8,23 +8,25 @@ import datetime
 from fastapi import FastAPI, HTTPException, Response, Request, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.logger import logger as fastLog
 import httpx
 import uvicorn
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 # pylint: disable=E0402
-from .storage import DB
-from .config import SHIELDS_IO_URL,COLOR, ERROR_COLOR, RATE_LIMIT_STRING, RATE_LIMIT_COST
-from .models import StarsResponse, RepoStarsResponse
-from .utils import validate_owner_repo
-from .services import GitHubService
-from .dbmanager import DBManager
+from storage import DB
+from config import SHIELDS_IO_URL,COLOR, ERROR_COLOR, RATE_LIMIT_STRING, RATE_LIMIT_COST
+from models import StarsResponse, RepoStarsResponse
+from utils import validate_owner_repo
+from services import GitHubService
+from dbmanager import DBManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
+fastLog.addHandler(handler)
 
 limiter = Limiter(
     key_func=get_remote_address,
