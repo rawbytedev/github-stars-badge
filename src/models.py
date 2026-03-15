@@ -1,9 +1,31 @@
 """
 Pydantic models for API responses.
 """
+import os
 from typing import Optional
 from pydantic import BaseModel
 
+class Config:
+    """Pydantic configuration for environment variable loading."""
+    env_file = ".env"
+    default_env_file_encoding = "utf-8"
+
+    def load_env_file(self):
+        """Load environment variables from the .env file."""
+        env_file = self.envfile()
+        if os.path.exists(env_file):
+            with open(env_file, encoding=self.env_file_encoding()) as f:
+                for line in f:
+                    if line.strip() and not line.startswith("#"):
+                        key, value = line.strip().split("=", 1)
+                        os.environ[key] = value
+
+    def env_file_encoding(self):
+        """Determine the encoding for the .env file."""
+        return os.getenv("ENV_FILE_ENCODING", "utf-8")
+    def envfile(self):
+        """Determine the path to the .env file."""
+        return os.getenv("ENV_FILE_PATH",   ".env")
 
 class StarsResponse(BaseModel):
     """Response model for user star count."""
@@ -26,8 +48,6 @@ class Settings(BaseModel):
     github_token: Optional[str] = None
     db_path: str = "store.db"
     cache_ttl: int = 10
-    class Config:
-        """Pydantic configuration for environment variable loading."""
-        env_file = ".env"
+
 
 settings = Settings()

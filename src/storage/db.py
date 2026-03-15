@@ -126,7 +126,7 @@ class DB:
                             decoded_val = val.decode()
                             results.append((decoded_key, decoded_val))
         return results
-    
+
     def delete(self, key:Union[bytes,str]):
         """
         Deletes a key from the DB and index
@@ -147,7 +147,7 @@ class DB:
                 del self.cache[key]
         except Exception as e:
             raise DBError(f"Can't delete item: {key}") from e
-        
+
     def close(self):
         """
         closes the DB, clear caches

@@ -5,7 +5,6 @@ Includes input validation and other helper functions.
 import re
 import time
 from fastapi import HTTPException
-# pylint: disable=E0402
 from models import settings
 
 def validate_owner_repo(value: str, field: str) -> str:

@@ -146,6 +146,8 @@ async def get_user_badge(
     badge_url = SHIELDS_IO_URL.format(formatted_stars, color, theme)
     return await get_badge_image(badge_url)
 
+#pylint: disable=too-many-arguments
+#pylint: disable=too-many-positional-arguments
 @app.get("/api/v1/badge/repo/{owner}/{repo}")
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
 async def get_repo_badge(

@@ -7,7 +7,6 @@ import httpx
 
 from models import CachedStarCount
 from storage import DB, DBError
-# pylint: disable=E0402
 from config import GITHUB_API_URL,HEADERS
 from utils import compare_timestamps, current_timestamp
 
@@ -72,6 +71,9 @@ class GitHubService:
         try:
             cached = self.db.get(key)
             if cached is not None:
+                # Ensure cached is a string
+                if isinstance(cached, bytes):
+                    cached = cached.decode()
                 stored = CachedStarCount.model_validate_json(cached)
                 stars = stored.stars
                 logger.info("Cache hit for %s: %s stars", key, f"{stars:,}")
@@ -84,6 +86,10 @@ class GitHubService:
             return None
         except ValueError:
             logger.warning("Invalid cache value for %s. Treating as cache miss.", key)
+            return None
+        #pylint: disable=broad-exception-caught
+        except Exception as e:
+            logger.error("Unexpected error fetching from cache for %s: %s", key, e)
             return None
 
         return None
@@ -171,17 +177,21 @@ class GitHubService:
         try:
             # Test database connectivity
             test_key = "health_check"
+            print("Performing health check: testing DB connectivity")
             self.db.put(test_key, "test")
+            print("DB put successful for health check key")
             val = self.db.get(test_key)
             if val.decode() != "test":
                 raise DBError("DB read/write test failed")
             self.db.delete(test_key)
+            print("DB delete successful for health check key")
 
             return {
                 "status": "healthy",
                 "database": "connected"
             }
         except DBError as exc:
+            print("DB put unsuccessful for health check key")
             logger.error("Database health check failed: %s", exc)
             return {
                 "status": "unhealthy",
