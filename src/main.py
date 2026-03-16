@@ -1,7 +1,10 @@
 """
 Main entry point for the GitHub Stars Badge API.
 """
+import json
 import logging
+from math import e
+from os import error
 import signal
 import sys
 import datetime
@@ -17,7 +20,7 @@ from slowapi.errors import RateLimitExceeded
 # pylint: disable=E0402
 from storage import DB
 from config import SHIELDS_IO_URL,COLOR, ERROR_COLOR, RATE_LIMIT_STRING, RATE_LIMIT_COST
-from models import StarsResponse, RepoStarsResponse
+from models import HealthCheckResponse, RateLimitResponse, StarsResponse, RepoStarsResponse
 from utils import validate_owner_repo
 from services import GitHubService
 from dbmanager import DBManager
@@ -46,8 +49,11 @@ async def rate_limit_handler(request: Request, exc: Exception) -> JSONResponse:
     _ = request
     if isinstance(exc, RateLimitExceeded):
         return JSONResponse(
-            status_code=429,
-            content={"detail": "Rate limit exceeded. Please try again later."},
+            content=RateLimitResponse(
+                error="Rate limit exceeded",
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later."
+            ).model_dump()
         )
     # Fallback for other exceptions (shouldn't reach here)
     raise exc
@@ -64,19 +70,18 @@ def get_github_service(db: DB = Depends(get_db)) -> GitHubService:
     return GitHubService(db)
 
 
-@app.get("/health", description="Health check endpoint to verify API and database connectivity")
+@app.get("/health", description="Health check endpoint to verify API and database connectivity", response_model=HealthCheckResponse, tags=["Health"])
 async def health(service: GitHubService = Depends(get_github_service)):
     """Health check endpoint to verify API and database connectivity."""
     db_status = service.health_check()
 
-    return {
-        "status": "healthy" if db_status["status"] == "healthy" else "unhealthy",
-        "database": db_status["database"],
-        "github_api": "responsive",
-        "timestamp": datetime.datetime.now().isoformat()
-    }
+    return HealthCheckResponse(
+        status="healthy" if db_status["status"] == "healthy" else "unhealthy",
+        database=db_status["database"],
+        timestamp=json.dumps(datetime.datetime.now().isoformat())
+    )
 
-@app.get("/api/v1/stars/{owner}")
+@app.get("/api/v1/stars/{owner}", description="Get total star count for a GitHub user", response_model=StarsResponse, tags=["Stars"])
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
 async def get_user_stars(
     request: Request,
@@ -95,7 +100,7 @@ async def get_user_stars(
         raise HTTPException(status_code=500, detail="Error fetching star count from GitHub")
     return StarsResponse(owner=owner, stars=stars)
 
-@app.get("/api/v1/stars/{owner}/{repo}")
+@app.get("/api/v1/stars/{owner}/{repo}", description="Get star count for a GitHub repository", response_model=RepoStarsResponse, tags=["Stars"])
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
 async def get_repo_stars(
     request: Request,
@@ -116,7 +121,7 @@ async def get_repo_stars(
         raise HTTPException(status_code=500, detail="Error fetching star count from GitHub")
     return RepoStarsResponse(owner=owner, repo=repo, stars=stars)
 
-@app.get("/api/v1/badge/user/{owner}")
+@app.get("/api/v1/badge/user/{owner}", description="Get badge image showing total stars for a GitHub user", tags=["Badge"])
 @limiter.limit(get_rate_limit_string(),cost=RATE_LIMIT_COST)
 async def get_user_badge(
     request: Request,
@@ -148,7 +153,7 @@ async def get_user_badge(
 
 #pylint: disable=too-many-arguments
 #pylint: disable=too-many-positional-arguments
-@app.get("/api/v1/badge/repo/{owner}/{repo}")
+@app.get("/api/v1/badge/repo/{owner}/{repo}", description="Get badge image showing stars for a GitHub repository", tags=["Badge"])
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
 async def get_repo_badge(
     request: Request,

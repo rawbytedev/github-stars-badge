@@ -27,6 +27,17 @@ class Config:
         """Determine the path to the .env file."""
         return os.getenv("ENV_FILE_PATH",   ".env")
 
+class RateLimitResponse(BaseModel):
+    """Response model for rate limit information."""
+    error: str
+    status_code: int
+    detail: str
+
+class HealthCheckResponse(BaseModel):
+    """Response model for health check endpoint."""
+    status: str
+    database: str
+    timestamp: str
 class StarsResponse(BaseModel):
     """Response model for user star count."""
     owner: str

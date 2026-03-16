@@ -177,21 +177,20 @@ class GitHubService:
         try:
             # Test database connectivity
             test_key = "health_check"
-            print("Performing health check: testing DB connectivity")
+            logger.info("Performing health check: testing DB connectivity")
             self.db.put(test_key, "test")
-            print("DB put successful for health check key")
+            logger.info("DB put successful for health check key")
             val = self.db.get(test_key)
             if val.decode() != "test":
                 raise DBError("DB read/write test failed")
             self.db.delete(test_key)
-            print("DB delete successful for health check key")
+            logger.info("DB delete successful for health check key")
 
             return {
                 "status": "healthy",
                 "database": "connected"
             }
         except DBError as exc:
-            print("DB put unsuccessful for health check key")
             logger.error("Database health check failed: %s", exc)
             return {
                 "status": "unhealthy",
