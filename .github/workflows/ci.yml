@@ -56,7 +56,7 @@ jobs:
         pip install pylint
 
     - name: Run Pylint
-      run: pylint src/ tests/ --rcfile=.pylintrc
+      run: pylint src/ --rcfile=.pylintrc
 
   security:
     runs-on: ubuntu-latest

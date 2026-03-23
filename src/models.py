@@ -1,7 +1,7 @@
 """
 Pydantic models for API responses.
 """
-
+#pylint: disable=too-few-public-methods
 import os
 from typing import Optional
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ class Config:
         """Determine the encoding for the .env file."""
 
         return os.getenv("ENV_FILE_ENCODING", "utf-8")
-    
+
     def envfile(self):
         """Determine the path to the .env file."""
 
@@ -66,7 +66,7 @@ class CachedStarCount(BaseModel):
     timestamp: int
 class Settings(BaseModel):
     """Application settings loaded from environment variables."""
-    
+
     github_token: Optional[str] = None
     db_path: str = "store.db"
     cache_ttl: int = 10

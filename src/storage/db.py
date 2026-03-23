@@ -22,7 +22,7 @@ class DB:
     :var prefix_bytes: Description
     :vartype prefix_bytes: Any
     """
-    
+
     def __init__(self, path="store.db", index_path="index.db", max_dbs=2):
         """
         Initialize the wrapper

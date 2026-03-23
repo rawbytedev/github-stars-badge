@@ -8,7 +8,7 @@ INDEX_PATH = "index.db"
 
 class DBManager:
     """Singleton manager for the LMDB database instance."""
-    
+
     _instance: Optional[DB] = None
 
     @classmethod
