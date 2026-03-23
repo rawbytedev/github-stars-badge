@@ -1,13 +1,14 @@
 """
 Service layer for GitHub operations with dependency injection.
 """
+
 import logging
 from typing import Optional
 import httpx
 
 from models import CachedStarCount
 from storage import DB, DBError
-from config import GITHUB_API_URL,HEADERS
+from config import GITHUB_API_URL, HEADERS
 from utils import compare_timestamps, current_timestamp
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,9 @@ class GitHubService:
         self.db = db
         self.timeout = timeout
 
-    async def fetch_star_count(self, owner: str, repo: Optional[str] = None) -> Optional[int]:
+    async def fetch_star_count(
+            self, owner: str, repo: Optional[str] = None
+    ) -> Optional[int]:
         """
         Fetch the star count for a user or repository, using cache when available.
 
@@ -87,7 +90,7 @@ class GitHubService:
         except ValueError:
             logger.warning("Invalid cache value for %s. Treating as cache miss.", key)
             return None
-        #pylint: disable=broad-exception-caught
+        # #pylint: disable=broad-exception-caught
         except Exception as e:
             logger.error("Unexpected error fetching from cache for %s: %s", key, e)
             return None
@@ -103,7 +106,9 @@ class GitHubService:
             stars: Star count to cache
         """
         try:
-            stored = CachedStarCount(key=key, stars=stars, timestamp=current_timestamp())
+            stored = CachedStarCount(
+                key=key, stars=stars, timestamp=current_timestamp()
+            )
 
             self.db.put(key, stored.model_dump_json())
             logger.info("Cached %s: %s stars", key, f"{stars:,}")
@@ -146,7 +151,9 @@ class GitHubService:
                     params = {"page": page, "per_page": per_page}
                     # User repositories: paginate through all repos
                     while True:
-                        resp = await client.get(url, headers=HEADERS, params=params, timeout=10)
+                        resp = await client.get(
+                            url, headers=HEADERS, params=params, timeout=10
+                        )
                         resp.raise_for_status()
                         repos = resp.json()
                         if not repos:

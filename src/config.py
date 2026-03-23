@@ -1,7 +1,7 @@
-"""
-Contain the main Config and defaults values
-"""
+"""Contain the main Config and defaults values"""
+
 import os
+
 #pylint: disable=C0103
 GITHUB_API_URL = "https://api.github.com/{}/{}/{}"
 SHIELDS_IO_URL = "https://img.shields.io/badge/stars-{}-{}?style={}&logo=github"

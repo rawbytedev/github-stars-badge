@@ -1,5 +1,5 @@
-"""Cryptographic utilities for hashing data.
-"""
+"""Cryptographic utilities for hashing data."""
+
 from typing import Union
 import hashlib
 
