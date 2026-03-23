@@ -6,10 +6,10 @@ import logging
 from typing import Optional
 import httpx
 
-from models import CachedStarCount
-from storage import DB, DBError
-from config import GITHUB_API_URL, HEADERS
-from utils import compare_timestamps, current_timestamp
+from .models import CachedStarCount
+from .storage import DB, DBError
+from .config import GITHUB_API_URL, HEADERS
+from .utils import compare_timestamps, current_timestamp
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
