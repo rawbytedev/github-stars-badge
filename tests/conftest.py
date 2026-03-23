@@ -4,16 +4,12 @@ Pytest configuration and shared fixtures for GitHub Stars Badge API tests.
 import pytest
 import tempfile
 import os
-import sys
 from unittest.mock import Mock, AsyncMock
 from fastapi.testclient import TestClient
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-from main import app
-from storage import DB
-from services import GitHubService
+from src.main import app
+from src.storage import DB
+from src.services import GitHubService
 
 
 @pytest.fixture
