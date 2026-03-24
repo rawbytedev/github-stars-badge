@@ -17,7 +17,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 # pylint: disable=E0402
 from .storage import DB
-from .config import SHIELDS_IO_URL,COLOR, ERROR_COLOR, RATE_LIMIT_STRING, RATE_LIMIT_COST
+from .config import SHIELDS_IO_URL,COLOR, ERROR_COLOR, RATE_LIMIT_STRING, RATE_LIMIT_COST, PORT
 from .models import HealthCheckResponse, RateLimitResponse, StarsResponse, RepoStarsResponse
 from .utils import validate_owner_repo
 from .services import GitHubService
@@ -232,4 +232,4 @@ signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C gracefully
 
 def main():
     """Main function to run the FastAPI app."""
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

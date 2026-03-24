@@ -15,3 +15,4 @@ RATE_LIMIT = int(os.getenv("RATE_LIMIT", "10"))
 RATE_LIMIT_COST = int(os.getenv("RATE_LIMIT_COST", "2"))
 RATE_LIMIT_PERIOD = os.getenv("RATE_LIMIT_PERIOD", "minute")
 RATE_LIMIT_STRING = f"{RATE_LIMIT}/{RATE_LIMIT_PERIOD}"
+PORT = int(os.getenv("PORT", "8000"))
