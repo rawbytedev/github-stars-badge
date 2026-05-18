@@ -39,7 +39,7 @@ A high-performance FastAPI service that generates dynamic GitHub star count badg
 
 The API will be available at `http://localhost:8000`
 
-### Docker (Not readu yet)
+### Docker (Not ready yet)
 
 ```bash
 # When available:
