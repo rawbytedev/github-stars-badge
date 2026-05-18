@@ -210,12 +210,25 @@ curl http://localhost:8000/api/v1/badge/repo/microsoft/vscode
 | Variable | Default | Description |
 | ---------- | --------- | ------------- |
 | `GITHUB_TOKEN` | None | GitHub personal access token for higher rate limits |
+| `CACHE_TTL` | 10 | Cache lifetime in seconds before star counts are refreshed |
 | `RATE_LIMIT` | 10 | Number of requests allowed per period |
 | `RATE_LIMIT_COST` | 2 | Cost per request for rate limiting |
 | `RATE_LIMIT_PERIOD` | minute | Time period for rate limiting (e.g., minute, hour) |
 | `LOG_LEVEL` | INFO | Logging level (DEBUG, INFO, WARNING, ERROR) |
 | `DB_PATH` | store.db | Path to LMDB database file |
 | `INDEX_PATH` | index.db | Path to LMDB index file |
+
+### Cache Refresh Behavior
+
+Star counts are cached in LMDB under the user or `owner/repo` key. When a
+request arrives within `CACHE_TTL` seconds of the cached timestamp, the service
+returns the cached value without calling the GitHub API.
+
+After the TTL expires, the next request treats the value as stale, fetches a
+fresh star count from GitHub, and writes the updated value back to the cache. No
+background refresh job runs automatically, so refreshes happen on demand. To use
+a longer cache window, set `CACHE_TTL` in the runtime environment, for example
+`CACHE_TTL=600` for ten minutes.
 
 ### GitHub Token Setup
 

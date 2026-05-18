@@ -5,6 +5,7 @@ import time
 from unittest.mock import patch
 import pytest
 from src import GitHubService, CachedStarCount
+from src.models import Settings
 from src.storage import DBError
 
 
@@ -62,6 +63,22 @@ class TestCaching:
         # Retrieve and verify
         result = service._fetch_cached_star_count(key)
         assert result == stars
+
+    def test_cache_ttl_uses_environment_value(self, monkeypatch):
+        """Test that CACHE_TTL configures cache expiration."""
+        monkeypatch.setenv("CACHE_TTL", "600")
+
+        settings = Settings()
+
+        assert settings.cache_ttl == 600
+
+    def test_cache_ttl_falls_back_for_invalid_environment_value(self, monkeypatch):
+        """Test that invalid CACHE_TTL values use the default."""
+        monkeypatch.setenv("CACHE_TTL", "invalid")
+
+        settings = Settings()
+
+        assert settings.cache_ttl == 10
 
     def test_db_error_handling(self, mock_db):
         """Test that DB errors are handled gracefully."""
