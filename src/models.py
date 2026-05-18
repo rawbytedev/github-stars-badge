@@ -4,7 +4,15 @@ Pydantic models for API responses.
 #pylint: disable=too-few-public-methods
 import os
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+def _cache_ttl_from_env() -> int:
+    """Return cache TTL from the environment, falling back to 10 seconds."""
+    try:
+        return int(os.getenv("CACHE_TTL", "10"))
+    except ValueError:
+        return 10
 
 class Config:
 
@@ -69,7 +77,7 @@ class Settings(BaseModel):
 
     github_token: Optional[str] = None
     db_path: str = "store.db"
-    cache_ttl: int = 10
+    cache_ttl: int = Field(default_factory=_cache_ttl_from_env)
 
 
 settings = Settings()
