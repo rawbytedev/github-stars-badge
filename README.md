@@ -39,7 +39,7 @@ A high-performance FastAPI service that generates dynamic GitHub star count badg
 
 The API will be available at `http://localhost:8000`
 
-### Docker (Not readu yet)
+### Docker (Not ready yet)
 
 ```bash
 # When available:
@@ -301,19 +301,9 @@ github-stars-badge/
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, code standards, test commands, commit guidance, and the pull request checklist.
 
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add type hints to new functions
-- Write tests for new features
-- Update documentation for API changes
-- Use conventional commit messages
+Notable user-facing changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Testing
 
