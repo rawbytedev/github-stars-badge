@@ -3,6 +3,12 @@
 A high-performance FastAPI service that generates dynamic GitHub star count badges and provides star count data via REST API. Perfect for README files, documentation, and dashboards.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+![CI](https://github.com/rawbytedev/github-stars-badge/actions/workflows/ci.yml/badge.svg)
+![codecov](https://codecov.io/gh/rawbytedev/github-stars-badge/branch/main/graph/badge.svg)
+![License](https://img.shields.io/github/license/rawbytedev/github-stars-badge)
+![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)
+![GitHub issues](https://img.shields.io/github/issues/rawbytedev/github-stars-badge)
+[![GitHub last commit](https://img.shields.io/github/last-commit/rawbytedev/github-stars-badge)](https://github.com/rawbytedev/github-stars-badge)
 
 ## Features
 
@@ -328,7 +334,7 @@ pytest
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License Version 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 

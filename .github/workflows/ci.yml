@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -25,19 +25,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio
+        pip install -r requirements-dev.txt
+        
+    - name: Run tests
+      run: pytest --cov --cov-branch --cov-report=xml
 
-    - name: Run tests with coverage
-      run: |
-        pytest --cov=src --cov-report=xml --cov-report=term-missing
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     runs-on: ubuntu-latest
@@ -50,13 +46,20 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install linting dependency
+    - name: Install linting tools
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
 
     - name: Run Pylint
       run: pylint src/ --rcfile=.pylintrc
+
+    - name: Check formatting (black)
+      run: black --check src/
+    
+    - name: Type check with mypy
+      run: mypy src/
 
   security:
     runs-on: ubuntu-latest
@@ -72,7 +75,7 @@ jobs:
     - name: Install security dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install bandit safety
+        pip install -r requirements-dev.txt
 
     - name: Run Bandit (security linting)
       run: bandit -r src/ -f json -o bandit-report.json || true
@@ -87,3 +90,19 @@ jobs:
         path: |
           bandit-report.json
           safety-report.json
+  
+  pr-title-lint:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            fix
+            feat
+            docs
+            test
+            chore
+          requireScope: false   

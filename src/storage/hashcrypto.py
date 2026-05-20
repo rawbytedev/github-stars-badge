@@ -3,6 +3,7 @@
 from typing import Union
 import hashlib
 
+
 def hash_sha256_bytes(data: Union[bytes, str]) -> bytes:
     """
     Hash data with SHA256 and return bytes.
