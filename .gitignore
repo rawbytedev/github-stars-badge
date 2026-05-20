@@ -1,2 +1,26 @@
+# Local environment files. Keep secrets and machine-specific settings out of git.
 .env
+
+# Local project/checklist notes that are useful while developing but not part of
+# the published package or documentation.
 CHECKLIST.md
+
+# Python virtual environments.
+.venv/
+venv/
+env/
+
+# Python bytecode and test/tool caches.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local LMDB/cache database files generated while running the API.
+store.db
+index.db
+*.mdb
+*.mdb-lock
