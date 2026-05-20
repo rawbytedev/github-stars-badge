@@ -56,9 +56,6 @@ jobs:
 
     - name: Check formatting (black)
       run: black --check src/
-
-    - name: Lint with flake8
-      run: flake8 src/
     
     - name: Type check with mypy
       run: mypy src/

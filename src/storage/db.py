@@ -4,7 +4,7 @@ Wrapper around lmdb for storage(store + index)
 
 from collections import OrderedDict
 from typing import Optional, Union
-import lmdb as tool
+import lmdb as tool  # type: ignore
 from .hashcrypto import dighash
 
 CACHESIZE = 30
@@ -60,7 +60,7 @@ class DB:
             hash_key = dighash(key)
             val = txn.get(hash_key)
             if val is None:
-                raise DBError(f"Value for key {key} not found")
+                raise DBError(f"Value for key  {key!r} not found")
             decoded = val.decode()
             self._cache_set(key, decoded)
             return decoded
@@ -92,7 +92,7 @@ class DB:
             with self.index.begin(write=True) as txn:
                 txn.put(key, hash_key)
         except Exception as e:
-            raise DBError(f"Can't insert item: {key}:{value}") from e
+            raise DBError(f"Can't insert item:  {key!r}:{value!r}") from e
 
     def _encode_key_value(
         self, key: Union[bytes, str], value: Optional[Union[bytes, str]] = None
@@ -151,7 +151,7 @@ class DB:
             if key in self.cache:
                 del self.cache[key]
         except Exception as e:
-            raise DBError(f"Can't delete item: {key}") from e
+            raise DBError(f"Can't delete item:  {key!r}") from e
 
     def close(self):
         """

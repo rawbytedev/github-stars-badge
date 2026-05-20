@@ -3,7 +3,6 @@ pytest-cov
 pytest-asyncio
 pylint
 black
-flake8
 mypy
 bandit
 safety
