@@ -8,24 +8,27 @@ import time
 from fastapi import HTTPException
 from .models import settings
 
+
 def validate_owner_repo(value: str, field: str) -> str:
     """
     Validate the owner and repo parameters to prevent injection attacks.
     Only allow alphanumeric characters, hyphens, underscores, and periods.
     """
-    if not re.match(r'^[a-zA-Z0-9\-_\.]+$', value):
+    if not re.match(r"^[a-zA-Z0-9\-_\.]+$", value):
         raise HTTPException(
             400,
             f"Invalid {field}:"
-            "only alphanumeric, hyphens, underscores, periods allowed"
+            "only alphanumeric, hyphens, underscores, periods allowed",
         )
     return value
+
 
 def current_timestamp() -> int:
     """
     Get the current timestamp in seconds.
     """
     return int(time.time())
+
 
 def compare_timestamps(ts1: int) -> bool:
     """

@@ -36,7 +36,7 @@ class GitHubService:
         self.timeout = timeout
 
     async def fetch_star_count(
-            self, owner: str, repo: Optional[str] = None
+        self, owner: str, repo: Optional[str] = None
     ) -> Optional[int]:
         """
         Fetch the star count for a user or repository, using cache when available.
@@ -116,8 +116,8 @@ class GitHubService:
             logger.error("Failed to cache %s: %s", key, e)
 
     async def _fetch_github_star_count(
-            self, owner: str, repo: Optional[str] = None
-            ) -> Optional[int]:
+        self, owner: str, repo: Optional[str] = None
+    ) -> Optional[int]:
         """
         Fetch star count directly from GitHub API.
 
@@ -168,9 +168,11 @@ class GitHubService:
             except httpx.RequestError as exc:
                 logger.info("GitHub API request error for %s: %s", url, exc)
                 return -1
-            #pylint: disable=broad-exception-caught
+            # pylint: disable=broad-exception-caught
             except Exception as exc:
-                logger.error("Unexpected error fetching from GitHub API for %s: %s", url, exc)
+                logger.error(
+                    "Unexpected error fetching from GitHub API for %s: %s", url, exc
+                )
                 return -1
         return stars
 
@@ -193,14 +195,7 @@ class GitHubService:
             self.db.delete(test_key)
             logger.info("DB delete successful for health check key")
 
-            return {
-                "status": "healthy",
-                "database": "connected"
-            }
+            return {"status": "healthy", "database": "connected"}
         except DBError as exc:
             logger.error("Database health check failed: %s", exc)
-            return {
-                "status": "unhealthy",
-                "database": "error",
-                "error": str(exc)
-            }
+            return {"status": "unhealthy", "database": "error", "error": str(exc)}

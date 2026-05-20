@@ -6,6 +6,7 @@ from .storage import DB
 DB_PATH = "store.db"
 INDEX_PATH = "index.db"
 
+
 class DBManager:
     """Singleton manager for the LMDB database instance."""
 

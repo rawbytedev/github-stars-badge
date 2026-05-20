@@ -9,10 +9,12 @@ from .hashcrypto import dighash
 
 CACHESIZE = 30
 
+
 class DBError(Exception):
     """
     Error class for DB
     """
+
 
 class DB:
     """
@@ -26,7 +28,7 @@ class DB:
     def __init__(self, path="store.db", index_path="index.db", max_dbs=2):
         """
         Initialize the wrapper
-        
+
         :param self: Description
         :param path: Path for store
         :param index_path: Path for index
@@ -42,16 +44,16 @@ class DB:
             self.cache.popitem(last=False)
         self.cache[key] = value
 
-    def get(self, key:Union[bytes,str]):
+    def get(self, key: Union[bytes, str]):
         """
         Retrieve the value using a key from db
-        
+
         :param self: Description
         :param key: key to retrieve
         """
         if not key:
             raise DBError("Key can't be empty")
-        key ,_=self._encode_key_value(key)
+        key, _ = self._encode_key_value(key)
         if key in self.cache:
             return self.cache[key]
         with self.db.begin(write=False) as txn:
@@ -63,7 +65,7 @@ class DB:
             self._cache_set(key, decoded)
             return decoded
 
-    def put(self, key:Union[bytes,str], value:Optional[Union[bytes,str]]):
+    def put(self, key: Union[bytes, str], value: Optional[Union[bytes, str]]):
         """
         Stores a value into DB using specified key
         replaces a value if the key is already present
@@ -76,7 +78,7 @@ class DB:
             raise DBError("Key can't be empty")
         if not value:
             raise DBError("Value can't be empty")
-        key ,value = self._encode_key_value(key, value)
+        key, value = self._encode_key_value(key, value)
         if value is None:
             raise DBError("Value can't be empty")
         if key is None:
@@ -92,8 +94,9 @@ class DB:
         except Exception as e:
             raise DBError(f"Can't insert item: {key}:{value}") from e
 
-    def _encode_key_value(self,key:Union[bytes,str],
-                          value:Optional[Union[bytes,str]]=None) -> tuple[bytes,Optional[bytes]]:
+    def _encode_key_value(
+        self, key: Union[bytes, str], value: Optional[Union[bytes, str]] = None
+    ) -> tuple[bytes, Optional[bytes]]:
         if key is not None:
             if isinstance(key, str):
                 key = key.encode()
@@ -129,16 +132,16 @@ class DB:
                             results.append((decoded_key, decoded_val))
         return results
 
-    def delete(self, key:Union[bytes,str]):
+    def delete(self, key: Union[bytes, str]):
         """
         Deletes a key from the DB and index
-        
+
         :param self: Description
         :param key: key to delete
         """
         if not key:
             raise DBError("Key can't be empty")
-        key ,_=self._encode_key_value(key)
+        key, _ = self._encode_key_value(key)
         hash_key = dighash(key)
         try:
             with self.db.begin(write=True) as txn:
@@ -153,7 +156,7 @@ class DB:
     def close(self):
         """
         closes the DB, clear caches
-        
+
         :param self: Description
         """
         self.cache.clear()
