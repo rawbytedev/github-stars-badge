@@ -12,10 +12,11 @@ Thanks for helping improve GitHub Stars Badge API. This guide explains the local
    source .venv/bin/activate
    ```
 
-3. Install the project dependencies:
+3. Install the project and development dependencies:
 
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 
 4. Copy the sample environment file if you want to run against a GitHub token:
@@ -48,10 +49,25 @@ Run the test suite before opening a pull request:
 pytest
 ```
 
-Run pylint when you touch application code:
+Run the same quality checks as CI when you touch application code:
 
 ```bash
-pylint src/
+pylint src/ --rcfile=.pylintrc
+black --check src/
+mypy src/
+```
+
+To run these checks before each commit, you can install a local Git hook:
+
+```bash
+cat > .git/hooks/pre-commit <<'SH'
+#!/bin/sh
+set -e
+pylint src/ --rcfile=.pylintrc
+black --check src/
+mypy src/
+SH
+chmod +x .git/hooks/pre-commit
 ```
 
 If you change endpoints, also test the affected route manually against the local server with `curl` or your browser.

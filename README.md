@@ -269,7 +269,8 @@ a longer cache window, set `CACHE_TTL` in the runtime environment, for example
 ### Setup Development Environment
 
 ```bash
-# Install dev dependencies (if available)
+# Install development dependencies
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
 # Run with auto-reload
@@ -289,7 +290,9 @@ pytest
 Run linting:
 
 ```bash
-pylint src/
+pylint src/ --rcfile=.pylintrc
+black --check src/
+mypy src/
 ```
 
 ### Project Structure
@@ -315,6 +318,7 @@ github-stars-badge/
 │   ├── test_caching.py  # Caching functionality tests
 │   └── test_github.py   # GitHub API integration tests
 ├── requirements.txt     # Python dependencies
+├── requirements-dev.txt # Development and quality-check dependencies
 └── README.md           # This file
 ```
 
