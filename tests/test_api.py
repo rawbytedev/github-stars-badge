@@ -1,9 +1,8 @@
 """
 Tests for API endpoints in GitHub Stars Badge API.
 """
+
 from unittest.mock import patch
-
-
 
 
 class TestAPIEndpoints:
@@ -19,7 +18,7 @@ class TestAPIEndpoints:
         assert "database" in data
         assert "timestamp" in data
 
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_user_stars_success(self, mock_fetch, client):
         """Test successful user stars endpoint."""
         mock_fetch.return_value = 123
@@ -31,7 +30,7 @@ class TestAPIEndpoints:
         assert data["owner"] == "testuser"
         assert data["stars"] == 123
 
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_user_stars_not_found(self, mock_fetch, client):
         """Test user stars endpoint when user not found."""
         mock_fetch.return_value = None
@@ -42,7 +41,7 @@ class TestAPIEndpoints:
         data = response.json()
         assert "User not found" in data["detail"]
 
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_user_stars_api_error(self, mock_fetch, client):
         """Test user stars endpoint when GitHub API fails."""
         mock_fetch.return_value = -1
@@ -53,7 +52,7 @@ class TestAPIEndpoints:
         data = response.json()
         assert "Error fetching star count" in data["detail"]
 
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_repo_stars_success(self, mock_fetch, client):
         """Test successful repository stars endpoint."""
         mock_fetch.return_value = 456
@@ -66,7 +65,7 @@ class TestAPIEndpoints:
         assert data["repo"] == "testrepo"
         assert data["stars"] == 456
 
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_repo_stars_not_found(self, mock_fetch, client):
         """Test repository stars endpoint when repo not found."""
         mock_fetch.return_value = None
@@ -93,8 +92,8 @@ class TestAPIEndpoints:
         data = response.json()
         assert "Invalid repository name" in data["detail"]
 
-    @patch('src.main.get_badge_image')
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.main.get_badge_image")
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_user_badge_success(self, mock_fetch, mock_badge, client):
         """Test successful user badge endpoint."""
         mock_fetch.return_value = 789
@@ -105,8 +104,8 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         mock_badge.assert_called_once()
 
-    @patch('src.main.get_badge_image')
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.main.get_badge_image")
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_user_badge_error_badge(self, mock_fetch, mock_badge, client):
         """Test user badge endpoint returns error badge on API failure."""
         mock_fetch.return_value = -1
@@ -126,8 +125,8 @@ class TestAPIEndpoints:
         data = response.json()
         assert "Invalid theme" in data["detail"]
 
-    @patch('src.main.get_badge_image')
-    @patch('src.services.GitHubService.fetch_star_count')
+    @patch("src.main.get_badge_image")
+    @patch("src.services.GitHubService.fetch_star_count")
     def test_get_repo_badge_success(self, mock_fetch, mock_badge, client):
         """Test successful repository badge endpoint."""
         mock_fetch.return_value = 321
@@ -154,7 +153,9 @@ class TestAPIEndpoints:
 
     def test_gzip_compression(self, client):
         """Test that gzip compression is enabled."""
-        response = client.get("/api/v1/stars/testuser", headers={"Accept-Encoding": "gzip"})
+        response = client.get(
+            "/api/v1/stars/testuser", headers={"Accept-Encoding": "gzip"}
+        )
 
         # Should return successfully (compression is transparent)
         assert response.status_code in [200, 404, 500]

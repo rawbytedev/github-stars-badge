@@ -113,14 +113,17 @@ async def health(service: GitHubService = Depends(get_github_service)):
 )
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
 async def get_user_stars(
-    request: Request, owner: str, service: GitHubService = Depends(get_github_service)
+    request: Request,
+    owner: str,
+    exclude_fork=False,
+    service: GitHubService = Depends(get_github_service),
 ) -> StarsResponse:
     """
     Return the total number of stars for a given GitHub user.
     """
     _ = request
     validate_owner_repo(owner, "username")
-    stars = await service.fetch_star_count(owner)
+    stars = await service.fetch_star_count(owner, exclude_fork=exclude_fork)
     if stars is None:
         raise HTTPException(status_code=404, detail="User not found")
     if stars == -1:
@@ -165,11 +168,13 @@ async def get_repo_stars(
     tags=["Badge"],
 )
 @limiter.limit(get_rate_limit_string(), cost=RATE_LIMIT_COST)
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 async def get_user_badge(
     request: Request,
     owner: str,
     theme: str = "flat",
     color: str = COLOR,
+    exclude_fork: bool = False,
     service: GitHubService = Depends(get_github_service),
 ):
     """
@@ -185,7 +190,7 @@ async def get_user_badge(
             "Choose from: flat, flat-square, for-the-badge, plastic",
         )
 
-    stars = await service.fetch_star_count(owner)
+    stars = await service.fetch_star_count(owner, exclude_fork=exclude_fork)
     if stars is None:
         raise HTTPException(status_code=404, detail="User not found")
     if stars == -1:
