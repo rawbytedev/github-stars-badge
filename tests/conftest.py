@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for GitHub Stars Badge API tests.
 """
+
 import pytest
 import tempfile
 import os
@@ -20,6 +21,7 @@ def temp_db_path():
     yield db_path
     # Cleanup
     import shutil
+
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 

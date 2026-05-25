@@ -36,7 +36,7 @@ class GitHubService:
         self.timeout = timeout
 
     async def fetch_star_count(
-        self, owner: str, repo: Optional[str] = None
+        self, owner: str, repo: Optional[str] = None, exclude_fork=False
     ) -> Optional[int]:
         """
         Fetch the star count for a user or repository, using cache when available.
@@ -48,14 +48,15 @@ class GitHubService:
         Returns:
             Star count, None if not found, -1 on error
         """
-        key = f"{owner}/{repo}" if repo else owner
+        key = f"{owner}/{repo}/{exclude_fork}" if repo else f"{owner}{exclude_fork}"
+        print(key)
         stars = self._fetch_cached_star_count(key)
 
         if stars is not None:
             return stars
 
         logger.info("Cache miss for %s, fetching from GitHub API", key)
-        stars = await self._fetch_github_star_count(owner, repo)
+        stars = await self._fetch_github_star_count(owner, repo, exclude_fork)
 
         if stars is not None and stars != -1:
             self._cache_star_count(key, stars)
@@ -116,7 +117,7 @@ class GitHubService:
             logger.error("Failed to cache %s: %s", key, e)
 
     async def _fetch_github_star_count(
-        self, owner: str, repo: Optional[str] = None
+        self, owner: str, repo: Optional[str] = None, exclude_fork: bool = False
     ) -> Optional[int]:
         """
         Fetch star count directly from GitHub API.
@@ -158,7 +159,11 @@ class GitHubService:
                         repos = resp.json()
                         if not repos:
                             break
-                        stars += sum(r.get("stargazers_count", 0) for r in repos)
+                        for r in repos:
+                            if exclude_fork and r.get("fork"):
+                                print("excluding")
+                                continue
+                            stars += r.get("stargazers_count", 0)
                         page += 1
                         params["page"] = page
             except httpx.HTTPStatusError as exc:

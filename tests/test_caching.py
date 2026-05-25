@@ -1,6 +1,7 @@
 """
 Tests for caching functionality in GitHub Stars Badge API.
 """
+
 import time
 from unittest.mock import patch
 import pytest
@@ -20,7 +21,9 @@ class TestCaching:
         expected_stars = 42
 
         # Pre-populate cache with proper CachedStarCount JSON
-        cached_data = CachedStarCount(key=key, stars=expected_stars, timestamp=int(time.time()))
+        cached_data = CachedStarCount(
+            key=key, stars=expected_stars, timestamp=int(time.time())
+        )
         mock_db.put(key, cached_data.model_dump_json())
 
         # Test
@@ -87,7 +90,8 @@ class TestCaching:
 
         # Mock DB to raise error
         with patch.object(
-            mock_db, 'get', side_effect=DBError("Value for key b'error_test' not found")):
+            mock_db, "get", side_effect=DBError("Value for key b'error_test' not found")
+        ):
             with pytest.raises(DBError, match="Value for key b'error_test' not found"):
                 mock_db.get(key)
             result = service._fetch_cached_star_count(key)
@@ -101,7 +105,9 @@ class TestCaching:
         service = GitHubService(mock_db)
 
         # Mock the GitHub API call
-        with patch.object(service, '_fetch_github_star_count', return_value=99) as mock_api:
+        with patch.object(
+            service, "_fetch_github_star_count", return_value=99
+        ) as mock_api:
             # First call should hit API and cache
             result1 = await service.fetch_star_count("testuser")
             assert result1 == 99
@@ -129,9 +135,11 @@ class TestCaching:
         value = "test"
         # Mock DB to raise error
         with patch.object(
-            mock_db, 'put',
-            side_effect=DBError(f"Can't insert item: {key}:{value}")):
-            result = service.health_check()  # This should handle the error and return unhealthy status
+            mock_db, "put", side_effect=DBError(f"Can't insert item: {key}:{value}")
+        ):
+            result = (
+                service.health_check()
+            )  # This should handle the error and return unhealthy status
 
         assert result["status"] == "unhealthy"
         assert result["database"] == "error"
