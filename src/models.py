@@ -4,8 +4,8 @@ Pydantic models for API responses.
 
 # pylint: disable=too-few-public-methods
 import os
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, HttpUrl
 
 
 def _cache_ttl_from_env() -> int:
@@ -58,6 +58,12 @@ class HealthCheckResponse(BaseModel):
     database: str
     timestamp: str
 
+class WebhookSubscription(BaseModel):
+    """Resquest model to add webhooks"""
+    url: HttpUrl
+    git_urls: List[str]
+    headers: Optional[Dict[str, str]] = None   # custom headers auth tokens
+    secret: Optional[str] = None               # for signing payloads
 
 class StarsResponse(BaseModel):
     """Response model for user star count."""
