@@ -1,11 +1,11 @@
 """
 Tests for GitHub API integration in GitHub Stars Badge API.
 """
+
 from unittest.mock import patch, AsyncMock
 import pytest
 import httpx
 from src import GitHubService
-
 
 
 class TestGitHubAPI:
@@ -16,7 +16,7 @@ class TestGitHubAPI:
         """Test successful fetching of user total stars."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=150):
+        with patch.object(service, "_fetch_github_star_count", return_value=150):
             result = await service._fetch_github_star_count("testuser")
 
             assert result == 150  # 50 + 75 + 25
@@ -26,7 +26,7 @@ class TestGitHubAPI:
         """Test successful fetching of repository stars."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=150):
+        with patch.object(service, "_fetch_github_star_count", return_value=150):
             result = await service._fetch_github_star_count("testuser", "testrepo")
 
             assert result == 150
@@ -36,7 +36,7 @@ class TestGitHubAPI:
         """Test handling of 404 errors from GitHub API."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=None):
+        with patch.object(service, "_fetch_github_star_count", return_value=None):
             result = await service._fetch_github_star_count("nonexistent")
 
             assert result is None
@@ -46,7 +46,7 @@ class TestGitHubAPI:
         """Test handling of other HTTP errors from GitHub API."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=-1):
+        with patch.object(service, "_fetch_github_star_count", return_value=-1):
             result = await service._fetch_github_star_count("testuser")
 
             assert result == -1
@@ -56,7 +56,7 @@ class TestGitHubAPI:
         """Test handling of network errors."""
         service = GitHubService(mock_db)
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
 
@@ -72,7 +72,7 @@ class TestGitHubAPI:
         """Test handling of empty repositories list."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=0):
+        with patch.object(service, "_fetch_github_star_count", return_value=0):
             result = await service._fetch_github_star_count("emptyuser")
 
             assert result == 0
@@ -82,7 +82,7 @@ class TestGitHubAPI:
         """Test that pagination is handled correctly."""
         service = GitHubService(mock_db)
 
-        with patch.object(service, '_fetch_github_star_count', return_value=60):
+        with patch.object(service, "_fetch_github_star_count", return_value=60):
             result = await service._fetch_github_star_count("paginateduser")
 
             # Should have made 2 API calls and summed all stars
