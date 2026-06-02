@@ -58,12 +58,25 @@ class HealthCheckResponse(BaseModel):
     database: str
     timestamp: str
 
+
+class StarsRequests(BaseModel):
+    """Request model for Stars"""
+
+    owner: str
+    repo: Optional[str]
+    exclude_fork: bool = False
+    stars: Optional[int]  # This field is ignored for all requests
+    # from users / meant for internal use
+
+
 class WebhookSubscription(BaseModel):
     """Resquest model to add webhooks"""
+
     url: HttpUrl
     git_urls: List[str]
-    headers: Optional[Dict[str, str]] = None   # custom headers auth tokens
-    secret: Optional[str] = None               # for signing payloads
+    headers: Optional[Dict[str, str]] = None  # custom headers auth tokens
+    secret: Optional[str] = None  # for signing payloads
+
 
 class StarsResponse(BaseModel):
     """Response model for user star count."""

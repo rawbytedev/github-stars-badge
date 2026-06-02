@@ -1,2 +1,2 @@
 [MASTER]
-disable=E0401
+disable=E0401, W0718 ## some linting can't be solved 

@@ -78,21 +78,25 @@ class DB:
             raise DBError("Key can't be empty")
         if not value:
             raise DBError("Value can't be empty")
-        key, value = self._encode_key_value(key, value)
-        if value is None:
-            raise DBError("Value can't be empty")
-        if key is None:
-            raise DBError("Key can't be empty")
-        self._cache_set(key, value)
 
-        hash_key = dighash(key)
+        # Keep original string key and value for cache
+        orig_key = key if isinstance(key, str) else key.decode()
+        orig_val = value if isinstance(value, str) else value.decode()
+
+        # Store in cache as strings
+        self._cache_set(orig_key, orig_val)
+
+        # Encode to bytes for LMDB storage
+        key_bytes, value_bytes = self._encode_key_value(key, value)
+        hash_key = dighash(key_bytes)
+
         try:
             with self.db.begin(write=True) as txn:
-                txn.put(hash_key, value)
+                txn.put(hash_key, value_bytes)
             with self.index.begin(write=True) as txn:
-                txn.put(key, hash_key)
+                txn.put(key_bytes, hash_key)
         except Exception as e:
-            raise DBError(f"Can't insert item:  {key!r}:{value!r}") from e
+            raise DBError(f"Can't insert item: {key!r}:{value!r}") from e
 
     def _encode_key_value(
         self, key: Union[bytes, str], value: Optional[Union[bytes, str]] = None

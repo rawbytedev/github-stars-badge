@@ -9,5 +9,15 @@ from .main import app, main
 from .services import GitHubService
 from .storage import DB, DBError
 from .models import CachedStarCount
+from .web_connections import SubscriptionManager, ConnectionManager
 
-__all__ = ["app", "main", "GitHubService", "DB", "DBError", "CachedStarCount"]
+__all__ = [
+    "app",
+    "main",
+    "GitHubService",
+    "DB",
+    "DBError",
+    "CachedStarCount",
+    "SubscriptionManager",
+    "ConnectionManager",
+]

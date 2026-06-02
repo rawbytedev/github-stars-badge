@@ -7,9 +7,16 @@ import logging
 import signal
 import sys
 import datetime
-from fastapi import (BackgroundTasks, FastAPI,
-                     HTTPException, Response, Request,
-                     Depends, WebSocket, WebSocketDisconnect)
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    HTTPException,
+    Response,
+    Request,
+    Depends,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import JSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.logger import logger as fastLog
@@ -38,7 +45,8 @@ from .models import (
 from .utils import validate_owner_repo
 from .services import GitHubService
 from .dbmanager import DBManager
-from .web_connections import ConnectionManager, emit_event, router
+from .web_connections import SubscriptionManager
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stdout)
@@ -50,55 +58,26 @@ limiter = Limiter(
     default_limits=[RATE_LIMIT_STRING],
 )
 
-app = FastAPI()
+
+# Global database instance - LMDB should be opened once and reused
+def get_db() -> DB:
+    """Helper: Get the shared database instance (singleton pattern for LMDB)."""
+    return DBManager.get_db()
+
+
+_github_service = GitHubService(get_db())
+manager = SubscriptionManager(service=_github_service)
+
+
+async def startup():  ## must set it so user can choose whether to enable or not
+    """Startup Function to run worker"""
+    await manager.start_worker()
+
+
+app = FastAPI(startup=startup)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.state.limiter = limiter
-app.include_router(router=router, prefix="")
-manager = ConnectionManager()
 
-# WebSocket
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """
-    Websocket endpoint - Handle websocket registration
-    """
-    conn_id = await manager.connect(websocket)
-    try:
-        while True:
-            # Wait for messages from the client (subscription / unsubscription)
-            raw = await websocket.receive_text()
-            try:
-                msg = json.loads(raw)
-            except json.JSONDecodeError:
-                await websocket.send_text(json.dumps({"error": "Invalid JSON"}))
-                continue
-            action = msg.get("action")
-            events = msg.get("events", [])
-            if action == "subscribe":
-                await manager.subscribe(conn_id, events)
-                await websocket.send_text(json.dumps({
-                    "status": "subscribed",
-                    "events": events
-                }))
-            elif action == "unsubscribe":
-                await manager.unsubscribe(conn_id, events)
-                await websocket.send_text(json.dumps({
-                    "status": "unsubscribed",
-                    "events": events
-                }))
-            else:
-                await websocket.send_text(json.dumps({"error": "unknown action"}))
-    except WebSocketDisconnect:
-        manager.disconnect(conn_id)
-    except Exception as e:
-        manager.disconnect(conn_id)
-        print(f"{e}")
-
-async def call_event(owner:str, stars:int ,repo:str=""):
-    """Helper that parse events, results and emit them"""
-    event = owner if repo == "" else f"{owner}:{repo}"
-    background_task:BackgroundTasks = BackgroundTasks()
-    await emit_event(event, {"stars":stars}, manager, background_task)
 
 def get_rate_limit_string():
     """Get the rate limit string for slowapi based on configuration."""
@@ -123,16 +102,53 @@ async def rate_limit_handler(request: Request, exc: Exception) -> JSONResponse:
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 
-# Global database instance - LMDB should be opened once and reused
-def get_db() -> DB:
-    """Get the shared database instance (singleton pattern for LMDB)."""
-    return DBManager.get_db()
-
-
 # Service dependency - injects DB into service
 def get_github_service(db: DB = Depends(get_db)) -> GitHubService:
     """Get GitHub service with injected database."""
     return GitHubService(db)
+
+
+# WebSocket
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    Websocket endpoint - Handle websocket registration
+    """
+    conn_id = await manager.conn.connect(websocket)
+    try:
+        while True:
+            # Wait for messages from the client (subscription / unsubscription)
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"error": "Invalid JSON"}))
+                continue
+            action = msg.get("action")
+            events = msg.get("events", [])
+            if action == "subscribe":
+                await manager.conn.subscribe(conn_id, events)
+                await websocket.send_text(
+                    json.dumps({"status": "subscribed", "events": events})
+                )
+            elif action == "unsubscribe":
+                await manager.conn.unsubscribe(conn_id, events)
+                await websocket.send_text(
+                    json.dumps({"status": "unsubscribed", "events": events})
+                )
+            else:
+                await websocket.send_text(json.dumps({"error": "unknown action"}))
+    except WebSocketDisconnect:
+        manager.conn.disconnect(conn_id)
+    except Exception as e:
+        manager.conn.disconnect(conn_id)
+        print(f"{e}")
+
+
+async def call_event(owner: str, stars: int, repo: str = ""):
+    """Helper that parse events, results and emit them"""
+    event = owner if repo == "" else f"{owner}:{repo}"
+    await manager.emit_event(event, {"stars": stars})
 
 
 @app.get(
@@ -162,6 +178,7 @@ async def health(service: GitHubService = Depends(get_github_service)):
 async def get_user_stars(
     request: Request,
     owner: str,
+    background_tasks: BackgroundTasks,
     exclude_fork=False,
     service: GitHubService = Depends(get_github_service),
 ) -> StarsResponse:
@@ -177,8 +194,7 @@ async def get_user_stars(
         raise HTTPException(
             status_code=500, detail="Error fetching star count from GitHub"
         )
-    background_task:BackgroundTasks = BackgroundTasks()
-    background_task.add_task(call_event, owner=owner, stars=stars)
+    background_tasks.add_task(call_event, owner=owner, stars=stars)
     return StarsResponse(owner=owner, stars=stars)
 
 
@@ -193,6 +209,7 @@ async def get_repo_stars(
     request: Request,
     owner: str,
     repo: str,
+    background_task: BackgroundTasks,
     service: GitHubService = Depends(get_github_service),
 ) -> RepoStarsResponse:
     """
@@ -208,8 +225,7 @@ async def get_repo_stars(
         raise HTTPException(
             status_code=500, detail="Error fetching star count from GitHub"
         )
-    background_task:BackgroundTasks = BackgroundTasks()
-    background_task.add_task(call_event, owner, stars=stars,repo=repo)
+    background_task.add_task(call_event, owner, stars=stars, repo=repo)
     return RepoStarsResponse(owner=owner, repo=repo, stars=stars)
 
 

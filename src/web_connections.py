@@ -1,16 +1,24 @@
 """
 Web Connections module for websocket and Webhooks
 """
+
+import asyncio
 import json
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 import uuid
-from fastapi import APIRouter, BackgroundTasks, WebSocket
+import time
+from fastapi import WebSocket
+from fastapi.logger import logger
 import httpx
-from .models import WebhookSubscription
+
+from .services import GitHubService
+from .models import StarsRequests, WebhookSubscription
+
 
 class ConnectionManager:
     """The Main connection Handler for websocket, Handles the complete lifecycle of websockets"""
-    def __init__(self):
+
+    def __init__(self) -> None:
         # active connections: id -> WebSocket
         self.active_connections: Dict[str, WebSocket] = {}
         # event name -> set of connection ids
@@ -88,50 +96,82 @@ class ConnectionManager:
             self.disconnect(conn_id)
 
 
+class SubscriptionManager:
+    """
+    This is the Main Manager for webhook and websocket
+    It handle the complete lifecycle for webhooks and websocket
+    """
 
-router = APIRouter()
-webhook_subscriptions:  List[WebhookSubscription]= []
+    def __init__(
+        self, service: GitHubService, conn: Optional[ConnectionManager] = None
+    ):
+        self.conn: ConnectionManager = conn or ConnectionManager()
+        self.watch_list: List[StarsRequests] = []
+        self.webhook_subscriptions: List[WebhookSubscription] = []
+        self.service = service
+        self.event_queue: asyncio.Queue = asyncio.Queue()
+        self.worker_task = None
 
-@router.post("/webhook/subscribe")
-async def register_webhook(sub: WebhookSubscription):
-    """Webhook endpoint for subscription"""
-    webhook_subscriptions.append(sub)
-    return {"status": "subscribed", "id": len(webhook_subscriptions)-1}
+    async def start_worker(self):
+        """Start a background worker that processes events from the queue."""
+        self.worker_task = asyncio.create_task(self._process_events())
 
-## Leave for now as it comes in handy for testing / Planned to be removed
-@router.get("/webhook/subscriptions")
-async def list_webhooks():
-    """Debug endpoint"""
-    return webhook_subscriptions
+    async def _process_events(self):
+        while True:
+            git_url, payload = await self.event_queue.get()
+            try:
+                # WebSocket broadcast
+                await self.conn.broadcast_event(git_url, payload)
+                # Webhooks
+                for sub in self.webhook_subscriptions:
+                    if git_url in sub.git_urls:
+                        await self.send_webhook(sub, git_url, payload)
+            except Exception as e:
+                logger.error("Failed to process event %s: %s", git_url, e)
+            finally:
+                self.event_queue.task_done()
 
+    async def register_webhook(self, sub: WebhookSubscription):
+        """Webhook endpoint for subscription"""
+        self.webhook_subscriptions.append(sub)
+        return {"status": "subscribed", "id": len(self.webhook_subscriptions) - 1}
 
-async def emit_event(git_url: str, payload: dict,
-                     manager: ConnectionManager,
-                     background_tasks: BackgroundTasks):
-    """A helper that boardcast_events to both websocket and webhooks"""
-    # 1. WebSockets
-    background_tasks.add_task(manager.broadcast_event, git_url, payload)
-    # 2. Webhooks (fire and forget with background task)
-    for sub in webhook_subscriptions:
-        if git_url in sub.git_urls:
-            background_tasks.add_task(send_webhook, sub, git_url, payload)
+    ## to remove
+    async def list_webhooks(self):
+        """Debug endpoint"""
+        return self.webhook_subscriptions
 
-async def send_webhook(sub: WebhookSubscription, git_url: str, payload: dict):
-    """Boardcast to webhooks"""
-    async with httpx.AsyncClient() as client:
-        try:
-            await client.post(
-                sub.url.unicode_string(),
-                json={"event": git_url, "data": payload, "timestamp": ...},
-                headers=sub.headers,
-                timeout=5
-            )
-        except httpx.ConnectError as e:
-            print(f"{e}")
-        except Exception as e:
-            # Log error and maybe store for retry queue
-            # log for now // Might have to add proper logging
-            print(f"{e}")
+    async def emit_event(self, git_url: str, payload: dict):
+        """Put event into queue for processing (non-blocking)."""
+        await self.event_queue.put((git_url, payload))
 
-async def periodic_scan():
-    pass
+    async def send_webhook(self, sub: WebhookSubscription, git_url: str, payload: dict):
+        """Boardcast to webhooks"""
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.post(
+                    sub.url.unicode_string(),
+                    json={"event": git_url, "data": payload, "timestamp": time.time()},
+                    headers=sub.headers,
+                    timeout=5,
+                )
+            except httpx.ConnectError as e:
+                logger.error("%s", e)
+            except Exception as e:
+                logger.error("%s", e)
+
+    async def periodic_scan(self, time_ms: float):
+        """
+        Periodically query active subscrition urls
+        Not implemented yet
+        """
+        while True:
+            await asyncio.sleep(time_ms)
+            for url in self.watch_list:
+                star = await self._refresh(url.owner, url.repo, url.exclude_fork)
+                if url.stars != star:
+                    url.stars = star
+                    await self.emit_event(f"{url.owner}:{url.repo}", {"stars": star})
+
+    async def _refresh(self, owner: str, repo: Optional[str], exclude_fork=False):
+        return await self.service.fetch_star_count(owner, repo, exclude_fork)

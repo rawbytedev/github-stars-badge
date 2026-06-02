@@ -49,7 +49,6 @@ class GitHubService:
             Star count, None if not found, -1 on error
         """
         key = f"{owner}/{repo}/{exclude_fork}" if repo else f"{owner}{exclude_fork}"
-        print(key)
         stars = self._fetch_cached_star_count(key)
 
         if stars is not None:
@@ -161,7 +160,6 @@ class GitHubService:
                             break
                         for r in repos:
                             if exclude_fork and r.get("fork"):
-                                print("excluding")
                                 continue
                             stars += r.get("stargazers_count", 0)
                         page += 1
@@ -195,7 +193,7 @@ class GitHubService:
             self.db.put(test_key, "test")
             logger.info("DB put successful for health check key")
             val = self.db.get(test_key)
-            if val.decode() != "test":
+            if val != "test":
                 raise DBError("DB read/write test failed")
             self.db.delete(test_key)
             logger.info("DB delete successful for health check key")
